@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Crunch — Privacy Policy</title>
+    <meta
+      name="description"
+      content="Crunch is a free daily number puzzle. Your game stays on your device. Here is exactly what we do and don't collect."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0C0C18" />
+
+    <!-- Favicon. assets/favicon.svg ships with the site; the PNG/ICO fallbacks and
+     apple-touch-icon still need exporting — see assets/README.md -->
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="assets/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Crunch — Privacy Policy" />
+    <meta
+      property="og:description"
+      content="A free daily number puzzle. Your game stays on your device."
+    />
+    <meta property="og:image" content="assets/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito+Sans:opsz,wght@6..12,400&family=Syne:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ── Tokens ──────────────────────────────────────────────────────────
+     Lifted from the app's constants/theme.ts so the site and the app
+     resolve to the same values. Don't drift these. */
+      :root {
+        --bg: #0c0c18;
+        --surface: #161626;
+        --elevated: #1f1f34;
+        --locked: #111120;
+        --border: #2a2a42;
+        /* The app's consumed-tile colour, not its resting one (#1C1C30): these
+       slots are empty, and #1C1C30 is invisible against an elevated card. */
+        --tile-empty: #0c0c18;
+
+        --accent: #ffbe0b;
+        --accent-dim: #33290a;
+        --accent-muted: #a67c00;
+
+        --success: #06d6a0;
+        --success-dim: #0a2e24;
+        --danger: #ff4d6a;
+
+        --text: #eaeaf0;
+        --muted: #6c6c82;
+        /* --muted lifted toward --text. #6C6C82 sits at ~3.5:1 on --surface, which
+       is fine for labels and chrome but under AA for sentences someone has to
+       read on a phone. Secondary *prose* uses this; everything else keeps the
+       app token. */
+        --muted-read: #9a9ab2;
+
+        --display: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --heading: "Syne", "Trebuchet MS", sans-serif;
+        --body:
+          "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+
+        --radius-card: 16px;
+        --radius-tile: 12px;
+        --gutter: clamp(20px, 5vw, 32px);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        padding: max(32px, env(safe-area-inset-top))
+          max(var(--gutter), env(safe-area-inset-right))
+          max(48px, env(safe-area-inset-bottom))
+          max(var(--gutter), env(safe-area-inset-left));
+      }
+
+      .page {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration-color: rgba(255, 190, 11, 0.4);
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        text-decoration-color: var(--accent);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
+      /* ── Masthead ─────────────────────────────────────────────────────── */
+
+      .masthead {
+        text-align: center;
+        padding: clamp(8px, 4vw, 32px) 0 clamp(32px, 7vw, 48px);
+      }
+
+      .logo {
+        display: inline-block;
+      }
+
+      .logo__word {
+        display: block;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2.4rem, 13vw, 4rem);
+        line-height: 1;
+        color: var(--accent);
+        letter-spacing: 0.18em;
+        /* Trailing letter-space would push the rule wider than the glyphs */
+        margin-right: -0.18em;
+      }
+
+      /* Splash-screen logotype: the rule wipes in left to right under the word */
+      .logo__rule {
+        display: block;
+        height: clamp(3px, 1vw, 5px);
+        margin-top: clamp(10px, 2.5vw, 14px);
+        border-radius: 2px;
+        background: var(--accent);
+        transform: scaleX(0);
+        transform-origin: left center;
+        animation: wipe 0.72s cubic-bezier(0.2, 0.75, 0.25, 1) 0.12s forwards;
+      }
+
+      .masthead__doc {
+        margin: clamp(18px, 4vw, 24px) 0 0;
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: clamp(0.95rem, 3.6vw, 1.1rem);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-right: -0.3em;
+      }
+
+      .masthead__date {
+        margin: 10px 0 0;
+        font-family: var(--display);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        /* Readable tone, no opacity: this date tells a reader which version of the
+       policy they are looking at. */
+        color: var(--muted-read);
+      }
+
+      /* ── Cards ────────────────────────────────────────────────────────── */
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: clamp(20px, 5vw, 28px);
+        margin-bottom: 12px;
+      }
+
+      .card--lead {
+        background: var(--elevated);
+        padding-bottom: clamp(24px, 5vw, 32px);
+      }
+
+      .card__title {
+        margin: 0 0 12px;
+        font-family: var(--heading);
+        font-weight: 700;
+        font-size: 1.0625rem;
+        line-height: 1.3;
+        letter-spacing: 0.01em;
+        color: var(--accent);
+      }
+
+      .card p {
+        margin: 0 0 14px;
+        color: var(--text);
+      }
+      .card p:last-child {
+        margin-bottom: 0;
+      }
+      .card .quiet {
+        color: var(--muted-read);
+        font-size: 0.9375rem;
+      }
+
+      .lead {
+        font-size: clamp(1.0625rem, 4vw, 1.1875rem);
+        line-height: 1.6;
+      }
+
+      /* ── The ledger: six tiles, the app's number pool, all zeros ──────── */
+
+      .ledger {
+        margin-top: clamp(24px, 5vw, 30px);
+        padding-top: clamp(22px, 5vw, 28px);
+        border-top: 1px solid var(--border);
+      }
+
+      /* Scoped to .card for the same reason as .ledger__note — `.card p` carries a
+     type selector and would otherwise win the colour. */
+      .card .eyebrow {
+        margin: 0 0 16px;
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: 0.625rem;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--muted-read);
+      }
+
+      .pool {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      @media (min-width: 560px) {
+        .pool {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+      }
+
+      .pool li {
+        text-align: center;
+      }
+
+      .tile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Square, like the number tiles in the game. They fill their column, so
+       the pool spans the card as one even block at any width. */
+        width: 100%;
+        aspect-ratio: 1;
+        background: var(--tile-empty);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-tile);
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(1.75rem, 8vw, 2rem);
+        color: var(--text);
+      }
+
+      .tile__label {
+        display: block;
+        margin-top: 9px;
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: 0.625rem;
+        line-height: 1.3;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted-read);
+      }
+
+      /* Scoped to .card so it outranks `.card p`, which would otherwise win the
+     margin with its type selector and collapse this against the tiles. */
+      .card .ledger__note {
+        margin: 26px 0 0;
+        color: var(--muted-read);
+        font-size: 0.9375rem;
+      }
+
+      /* ── Part headings + chip legend ──────────────────────────────────── */
+
+      .part {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: clamp(34px, 7vw, 44px) 0 14px;
+        font-family: var(--heading);
+        font-weight: 700;
+        font-size: 0.6875rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--text);
+      }
+      .part::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .legend {
+        margin: 0 0 16px;
+      }
+      .legend__intro {
+        margin: 0 0 10px;
+        color: var(--muted-read);
+        font-size: 0.875rem;
+      }
+      .legend__set {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 11px;
+        border-radius: 999px;
+        background: var(--elevated);
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: 0.5625rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .chip::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        flex: none;
+      }
+      .chip--device {
+        background: var(--success-dim);
+        color: var(--success);
+      }
+      .chip--sent {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .chip--none {
+        background: var(--elevated);
+        color: var(--muted-read);
+      }
+
+      .card .chip {
+        margin-bottom: 12px;
+      }
+
+      /* ── Footer ───────────────────────────────────────────────────────── */
+
+      .footer {
+        margin-top: clamp(40px, 8vw, 56px);
+        padding-top: 22px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        font-family: var(--display);
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .footer span {
+        opacity: 0.75;
+      }
+
+      /* ── Motion ───────────────────────────────────────────────────────── */
+
+      @keyframes wipe {
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* Short on purpose: the policy is readable within ~700ms of paint. Nobody
+     should wait on a flourish to read a privacy policy. */
+      .masthead__doc,
+      .masthead__date {
+        animation: rise 0.45s ease-out 0.26s both;
+      }
+      .content {
+        animation: rise 0.5s ease-out 0.34s both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-delay: 0s !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="masthead">
+        <h1 class="logo">
+          <span class="logo__word">CRUNCH</span>
+          <span class="logo__rule" aria-hidden="true"></span>
+        </h1>
+        <p class="masthead__doc">Privacy Policy</p>
+        <p class="masthead__date">
+          Updated <time datetime="2026-08-14">14 August 2026</time>
+        </p>
+      </header>
+
+      <div class="content">
+        <!-- Overview + the at-a-glance ledger -->
+        <article class="card card--lead">
+          <h2 class="card__title">Overview</h2>
+          <p class="lead">
+            Crunch is a free daily number puzzle. There is no account, no
+            sign-in, and nothing to fill in. Your game stays on your phone — the
+            only thing that leaves it is anonymous analytics, set out below.
+          </p>
+
+          <div class="ledger">
+            <p class="eyebrow">How much of your data we hold</p>
+            <ul class="pool">
+              <li>
+                <span class="tile">0</span><span class="tile__label">Name</span>
+              </li>
+              <li>
+                <span class="tile">0</span
+                ><span class="tile__label">Email</span>
+              </li>
+              <li>
+                <span class="tile">0</span
+                ><span class="tile__label">Location</span>
+              </li>
+              <li>
+                <span class="tile">0</span
+                ><span class="tile__label">Device ID</span>
+              </li>
+              <li>
+                <span class="tile">0</span
+                ><span class="tile__label">IP address</span>
+              </li>
+              <li>
+                <span class="tile">0</span
+                ><span class="tile__label">Account</span>
+              </li>
+            </ul>
+            <p class="ledger__note">
+              Six categories, six zeros — that is the whole record.
+            </p>
+          </div>
+        </article>
+
+        <h2 class="part">Your data</h2>
+
+        <div class="legend">
+          <p class="legend__intro">
+            Each section is tagged with where that data lives.
+          </p>
+          <div class="legend__set">
+            <span class="chip chip--device">Stays on device</span>
+            <span class="chip chip--sent">Leaves anonymously</span>
+            <span class="chip chip--none">Never collected</span>
+          </div>
+        </div>
+
+        <article class="card">
+          <span class="chip chip--device">Stays on device</span>
+          <h3 class="card__title">Data stored on your device</h3>
+          <p>
+            Every puzzle you play, every result, streak, and stat is written to
+            your device's local storage (AsyncStorage) and stays there.
+          </p>
+          <p>
+            It is never uploaded to us, and no one else can read it. Uninstall
+            Crunch and all of it is deleted with the app.
+          </p>
+        </article>
+
+        <article class="card">
+          <span class="chip chip--sent">Leaves anonymously</span>
+          <h3 class="card__title">Analytics</h3>
+          <p>
+            Crunch uses PostHog for anonymous product analytics. Events such as
+            completing a puzzle or tapping share are recorded, so we can see
+            which parts of the game work and which need fixing.
+          </p>
+          <p>
+            No personally identifiable information is captured, and IP addresses
+            are not stored. Nothing in an event traces back to you. To stop
+            sending events entirely, uninstall the app.
+          </p>
+        </article>
+
+        <article class="card">
+          <span class="chip chip--sent">Leaves anonymously</span>
+          <h3 class="card__title">Third party services</h3>
+          <p>
+            Each day's puzzle is served from Supabase, which hosts the puzzle
+            data. The app asks for a puzzle and gets one back.
+          </p>
+          <p>
+            Only puzzle data is fetched. No game history, no stats, and nothing
+            about you is sent to Supabase.
+          </p>
+        </article>
+
+        <article class="card">
+          <span class="chip chip--none">Never collected</span>
+          <h3 class="card__title">Data we do not collect</h3>
+          <p>
+            We do not collect your name, email address, location, device
+            identifiers, or any other personally identifiable information.
+          </p>
+          <p>
+            There is no account system, so there is nothing linking a game to a
+            person — and no profile of you to share, sell, or lose.
+          </p>
+        </article>
+
+        <h2 class="part">Everything else</h2>
+
+        <article class="card">
+          <h3 class="card__title">Children</h3>
+          <p>
+            Crunch is suitable for all ages — it is a target, six numbers, and a
+            timer. We do not knowingly collect data from children. As we collect
+            no identifying data from anyone, we hold none about a child either.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card__title">Contact</h3>
+          <!-- REPLACE BEFORE PUBLISHING: swap the address in both the href and the
+           link text below for the real contact address. -->
+          <p>
+            Privacy questions go to
+            <a href="mailto:REPLACE-WITH-EMAIL@example.com"
+              >REPLACE-WITH-EMAIL@example.com</a
+            >.
+          </p>
+          <p class="quiet">
+            Include your device and app version if you are asking about
+            something you saw in the app — it makes the answer faster.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card__title">Changes</h3>
+          <p>
+            We may update this policy. The current version is always the one at
+            this URL, and the date at the top of the page tells you when it last
+            changed.
+          </p>
+        </article>
+
+        <footer class="footer">
+          <span>CRUNCH &middot; io.game.crunch</span>
+          <a href="play/">Get the app &rarr;</a>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Crunch — OG image source</title>
+
+    <!-- Pages publishes every file in the repo, so this one is reachable even
+         though nothing links to it. It is a rendering surface, not a page. -->
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- SOURCE FILE, NOT A PUBLISHED PAGE.
+     Renders to assets/og-image.png at 1200 × 630. It is checked in so the card
+     can be regenerated when the tagline or the puzzle on it changes — see the
+     regeneration command in assets/README.md.
+
+     The puzzle shown is a legal draw under constants/numbers.ts in the app:
+     two large (50, 15), four small (7, 6, 3, 2), target inside 100–500.
+     It solves exactly: (50 + 7) × 6 = 342. Keep it solvable if you change it. -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito+Sans:opsz,wght@6..12,400&family=Syne:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #0c0c18;
+        --border: #2a2a42;
+        --tile: #1c1c30;
+        --accent: #ffbe0b;
+        --text: #eaeaf0;
+        --muted: #9a9ab2;
+
+        --display: "DM Mono", monospace;
+        --heading: "Syne", sans-serif;
+        --body: "Nunito Sans", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        width: 1200px;
+        height: 630px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        overflow: hidden;
+      }
+
+      /* 60px of bleed on every edge: some scrapers crop the outer band */
+      .card {
+        width: 100%;
+        height: 100%;
+        padding: 60px 72px;
+        display: flex;
+        align-items: center;
+        gap: 64px;
+      }
+
+      /* ── Left: identity ─────────────────────────────────────────────── */
+
+      .identity {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+
+      .mark {
+        --sq: 26px;
+        display: grid;
+        grid-template-columns: repeat(3, var(--sq));
+        grid-auto-rows: var(--sq);
+        gap: calc(var(--sq) * 0.16);
+        margin-bottom: 38px;
+      }
+      .mark i {
+        display: block;
+        border-radius: calc(var(--sq) * 0.2);
+      }
+      .mark i.on {
+        background: var(--accent);
+      }
+
+      .word {
+        display: block;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 92px;
+        line-height: 1;
+        color: var(--accent);
+        letter-spacing: 0.18em;
+        margin-right: -0.18em;
+      }
+
+      .rule {
+        display: block;
+        height: 7px;
+        margin-top: 18px;
+        border-radius: 3px;
+        background: var(--accent);
+      }
+
+      .tagline {
+        margin-top: 34px;
+        font-size: 27px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      /* ── Right: the game moment ─────────────────────────────────────── */
+
+      .puzzle {
+        flex: 0 0 auto;
+        padding-left: 64px;
+        border-left: 1px solid var(--border);
+        text-align: center;
+      }
+
+      .label {
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-right: -0.32em;
+      }
+
+      .target {
+        display: block;
+        margin-top: 12px;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 128px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--accent);
+      }
+
+      .pool {
+        display: grid;
+        grid-template-columns: repeat(3, 78px);
+        gap: 12px;
+        margin-top: 40px;
+      }
+
+      .tile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 78px;
+        background: var(--tile);
+        border-radius: 14px;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 34px;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="identity">
+        <div class="mark">
+          <i></i><i class="on"></i><i class="on"></i> <i class="on"></i><i></i
+          ><i></i> <i class="on"></i><i></i><i></i> <i></i><i class="on"></i
+          ><i class="on"></i>
+        </div>
+        <span class="word">CRUNCH</span>
+        <span class="rule"></span>
+        <p class="tagline">Six numbers. One target. Sixty seconds.</p>
+      </div>
+
+      <div class="puzzle">
+        <span class="label">Target</span>
+        <span class="target">342</span>
+        <div class="pool">
+          <span class="tile">7</span>
+          <span class="tile">3</span>
+          <span class="tile">50</span>
+          <span class="tile">6</span>
+          <span class="tile">2</span>
+          <span class="tile">15</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Crunch — Daily Number Puzzle</title>
+    <meta
+      name="description"
+      content="Crunch is a daily number puzzle. Available now on Android, coming to iOS soon."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0C0C18" />
+
+    <!-- Platform routing.
+     Runs before any body content is parsed, so Android users never paint a
+     frame of this page. location.replace keeps it out of session history —
+     Back from the Play Store returns to wherever they came from, not here.
+     iOS and everything else fall through to the page below. -->
+    <script>
+      (function () {
+        var ua = navigator.userAgent;
+        var isIOS =
+          /iPad|iPhone|iPod/.test(ua) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        var isAndroid = /Android/.test(ua);
+
+        if (isAndroid) {
+          // Hides the body's contents, not the root: <html> keeps painting its
+          // background, so a slow hand-off stays #0C0C18 instead of flashing white.
+          document.documentElement.className = "is-redirecting";
+          window.location.replace(
+            "https://play.google.com/store/apps/details?id=io.game.crunch",
+          );
+        }
+      })();
+    </script>
+
+    <!-- Favicon. assets/favicon.svg ships with the site; the PNG/ICO fallbacks and
+     apple-touch-icon still need exporting — see assets/README.md -->
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="../assets/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Crunch — Daily Number Puzzle" />
+    <meta
+      property="og:description"
+      content="Six numbers, one target, one shot a day."
+    />
+    <meta property="og:image" content="../assets/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito+Sans:opsz,wght@6..12,400&family=Syne:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ── Tokens ──────────────────────────────────────────────────────────
+     Lifted from the app's constants/theme.ts so the site and the app
+     resolve to the same values. Don't drift these. */
+      :root {
+        --bg: #0c0c18;
+        --surface: #161626;
+        --elevated: #1f1f34;
+        --border: #2a2a42;
+
+        --accent: #ffbe0b;
+        --accent-dim: #33290a;
+
+        --success: #06d6a0;
+        --danger: #ff4d6a;
+
+        --text: #eaeaf0;
+        --muted: #6c6c82;
+        /* --muted lifted toward --text. #6C6C82 sits at ~3.8:1 on --bg, fine for
+       labels and chrome but under AA for the sentence a visitor is here to
+       read. Prose uses this; everything else keeps the app token. */
+        --muted-read: #9a9ab2;
+
+        --display: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --heading: "Syne", "Trebuchet MS", sans-serif;
+        --body:
+          "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* On <html> as well as <body> so the canvas is dark from the first paint,
+     before <body> has even been parsed. */
+      html {
+        background: #0c0c18;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* Android: the head script has already started the Play Store hand-off */
+      html.is-redirecting body {
+        visibility: hidden;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--body);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        padding: max(32px, env(safe-area-inset-top))
+          max(24px, env(safe-area-inset-right))
+          max(32px, env(safe-area-inset-bottom))
+          max(24px, env(safe-area-inset-left));
+      }
+
+      .stage {
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+      }
+
+      a {
+        color: var(--accent);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      /* ── Icon mark — the app icon's six tiles, 3 × 4 ──────────────────── */
+
+      .mark {
+        --sq: clamp(15px, 5.2vw, 22px);
+        display: grid;
+        grid-template-columns: repeat(3, var(--sq));
+        grid-auto-rows: var(--sq);
+        gap: calc(var(--sq) * 0.16);
+        justify-content: center;
+        margin: 0 auto clamp(28px, 7vw, 38px);
+      }
+
+      .mark i {
+        display: block;
+        border-radius: calc(var(--sq) * 0.2);
+      }
+
+      /* The six filled cells trace the C: top arm right-to-left, down the
+     spine, then out along the bottom arm. */
+      .mark i.on {
+        background: var(--accent);
+        opacity: 0;
+        animation: pop 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+        animation-delay: calc(var(--d) * 42ms);
+      }
+
+      /* ── Logotype ─────────────────────────────────────────────────────── */
+
+      .logo {
+        display: inline-block;
+        margin: 0;
+      }
+
+      .logo__word {
+        display: block;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(2.1rem, 11vw, 2.9rem);
+        line-height: 1;
+        color: var(--accent);
+        letter-spacing: 0.18em;
+        /* Trailing letter-space would push the rule wider than the glyphs */
+        margin-right: -0.18em;
+      }
+
+      /* Splash-screen logotype: the rule wipes in left to right under the word */
+      .logo__rule {
+        display: block;
+        height: 4px;
+        margin-top: 11px;
+        border-radius: 2px;
+        background: var(--accent);
+        transform: scaleX(0);
+        transform-origin: left center;
+        animation: wipe 0.6s cubic-bezier(0.2, 0.75, 0.25, 1) 0.28s forwards;
+      }
+
+      /* ── Copy ─────────────────────────────────────────────────────────── */
+
+      .headline {
+        margin: clamp(30px, 7vw, 40px) 0 0;
+        font-family: var(--display);
+        /* DM Mono stops at 500 — asking for more gets a synthesised fake bold
+           with smeared stems. Same rule the app follows in theme.ts. */
+        font-weight: 500;
+        font-size: clamp(1.75rem, 8vw, 2.25rem);
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        color: var(--text);
+        text-wrap: balance;
+      }
+
+      .blurb {
+        margin: 14px auto 0;
+        max-width: 34ch;
+        color: var(--muted-read);
+        font-size: 1rem;
+        text-wrap: pretty;
+      }
+
+      /* ── Availability card ────────────────────────────────────────────── */
+
+      .store {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: clamp(30px, 7vw, 40px);
+        padding: 12px 18px;
+        text-align: left;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        text-decoration: none;
+        transition:
+          border-color 0.18s ease,
+          background-color 0.18s ease,
+          transform 0.18s ease;
+      }
+      .store:hover {
+        border-color: var(--accent);
+        background: var(--elevated);
+      }
+      .store:active {
+        transform: scale(0.99);
+      }
+
+      .store__dot {
+        width: 8px;
+        height: 8px;
+        margin-right: 4px;
+        flex: none;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 4px rgba(6, 214, 160, 0.12);
+      }
+
+      .store__text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .store__line {
+        display: block;
+        font-family: var(--heading);
+        font-weight: 600;
+        font-size: 1.0625rem;
+        letter-spacing: 0.01em;
+        color: var(--text);
+      }
+
+      .store__sub {
+        display: block;
+        margin-top: 2px;
+        font-family: var(--display);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .store__go {
+        flex: none;
+        font-family: var(--display);
+        font-size: 2rem;
+        color: var(--accent);
+      }
+
+      /* ── Footer + noscript ────────────────────────────────────────────── */
+
+      .foot {
+        margin-top: clamp(28px, 6vw, 36px);
+        font-family: var(--display);
+        font-size: 0.6875rem;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .foot a {
+        text-decoration-color: rgba(255, 190, 11, 0.35);
+        text-underline-offset: 3px;
+      }
+
+      .noscript {
+        margin: 0 0 24px;
+        padding: 12px 16px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        font-size: 0.875rem;
+        color: var(--muted-read);
+      }
+
+      /* ── Motion ───────────────────────────────────────────────────────── */
+
+      @keyframes wipe {
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes pop {
+        0% {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        60% {
+          opacity: 1;
+          transform: scale(1.12);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* Kept short on purpose: the whole sequence is done inside a second, so a
+     visitor who taps through fast is never looking at an empty page. */
+      .headline {
+        animation: rise 0.42s ease-out 0.36s both;
+      }
+      .blurb {
+        animation: rise 0.42s ease-out 0.42s both;
+      }
+      .store {
+        animation: rise 0.42s ease-out 0.48s both;
+      }
+      .foot {
+        animation: rise 0.42s ease-out 0.54s both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-delay: 0s !important;
+        }
+        .store {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <noscript>
+        <p class="noscript">
+          JavaScript is off, so we can't tell which phone you're on.
+          <a href="https://play.google.com/store/apps/details?id=io.game.crunch"
+            >Open Crunch on Google Play</a
+          >.
+        </p>
+      </noscript>
+
+      <!-- App icon mark: 3 × 4 grid, six gold tiles forming the C -->
+      <div class="mark" role="img" aria-label="Crunch app icon">
+        <i></i><i class="on" style="--d: 2"></i
+        ><i class="on" style="--d: 1"></i> <i class="on" style="--d: 3"></i
+        ><i></i><i></i> <i class="on" style="--d: 4"></i><i></i><i></i> <i></i
+        ><i class="on" style="--d: 5"></i><i class="on" style="--d: 6"></i>
+      </div>
+
+      <p class="logo">
+        <span class="logo__word">CRUNCH</span>
+        <span class="logo__rule" aria-hidden="true"></span>
+      </p>
+
+      <h1 class="headline">Coming to iOS soon</h1>
+      <p class="blurb">
+        Crunch is currently available on Android. iOS is coming soon — check
+        back here for the download link.
+      </p>
+
+      <a
+        class="store"
+        href="https://play.google.com/store/apps/details?id=io.game.crunch"
+      >
+        <span class="store__dot" aria-hidden="true"></span>
+        <span class="store__text">
+          <span class="store__line">Available now on Android</span>
+          <span class="store__sub">GOOGLE PLAY</span>
+        </span>
+        <span class="store__go" aria-hidden="true">&rarr;</span>
+      </a>
+
+      <p class="foot"><a href="../">Privacy policy</a></p>
+    </main>
+  </body>
+</html>

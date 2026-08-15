@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Crunch">
+  <title>Crunch</title>
+  <!-- The app icon's mark (3 × 4 tiles forming a C), redrawn at favicon scale:
+       same proportions — 13% gaps, 14% corner radius, and the same optical
+       offset left of centre — but the glyph fills ~75% of the canvas height
+       instead of the app icon's 57%, so it still reads at 16px in a tab.
+       The offset is deliberate: the C's open right side makes a mathematically
+       centred mark look shifted right. Do not "fix" it. -->
+  <rect width="1024" height="1024" rx="180" fill="#0C0C18"/>
+  <g fill="#FFBE0B">
+    <rect x="379" y="129" width="172" height="172" rx="31"/>
+    <rect x="577" y="129" width="172" height="172" rx="31"/>
+    <rect x="181" y="327" width="172" height="172" rx="31"/>
+    <rect x="181" y="525" width="172" height="172" rx="31"/>
+    <rect x="379" y="723" width="172" height="172" rx="31"/>
+    <rect x="577" y="723" width="172" height="172" rx="31"/>
+  </g>
+</svg>
