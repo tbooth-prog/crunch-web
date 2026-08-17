@@ -10,10 +10,10 @@ Google Fonts.
 
 ## Pages
 
-| URL      | File                | What it does                                                                                                                             |
-| -------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`      | `index.html`        | Privacy policy. The URL the Play Store listing and the app's in-app link should point at — see the checklist below, neither does yet.    |
-| `/play/` | `play/index.html`   | Store redirect. Android goes straight to the Play Store; iOS and desktop get a landing page. This is the URL to put on cards, bios, etc. |
+| URL      | File              | What it does                                                                                                                             |
+| -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`      | `index.html`      | Privacy policy. The URL the Play Store listing and the app's in-app link should point at — see the checklist below, neither does yet.    |
+| `/play/` | `play/index.html` | Store redirect. Android goes straight to the Play Store; iOS and desktop get a landing page. This is the URL to put on cards, bios, etc. |
 
 The `/play/` redirect runs in a `<head>` script before any body content is
 parsed, so Android visitors never paint a frame of the page, and it uses
@@ -49,13 +49,13 @@ the lifted tone; everything else keeps the app token.
 
 ## Assets
 
-| File                        | Used by    | Notes                                                                                                                                                                                        |
-| --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assets/favicon.svg`        | both pages | Authored here. 3 × 4 tile "C" on `#0C0C18`, same proportions and optical offset as the app icon, glyph scaled to ~75% of the canvas so it still reads at 16px in a tab. Covers modern browsers. |
-| `assets/favicon.png`        | both pages | 256 × 256 fallback for browsers that don't take SVG favicons. Copied from the app repo.                                                                                                       |
-| `assets/apple-touch-icon.png` | both pages | Home-screen icon when an iOS visitor saves the page — likely, since `/play/` is the iOS landing page. 180 × 180, opaque (iOS puts black behind transparency).                              |
-| `assets/og-image.png`       | both pages | 1200 × 630 link preview card for Slack, iMessage, WhatsApp, X. Generated — see below.                                                                                                         |
-| `assets/og-image.html`      | nothing    | Source for `og-image.png`. A rendering surface, not a page: it carries `noindex, nofollow`, and nothing links to it.                                                                          |
+| File                          | Used by    | Notes                                                                                                                                                                                           |
+| ----------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets/favicon.svg`          | both pages | Authored here. 3 × 4 tile "C" on `#0C0C18`, same proportions and optical offset as the app icon, glyph scaled to ~75% of the canvas so it still reads at 16px in a tab. Covers modern browsers. |
+| `assets/favicon.png`          | both pages | 256 × 256 fallback for browsers that don't take SVG favicons. Copied from the app repo.                                                                                                         |
+| `assets/apple-touch-icon.png` | both pages | Home-screen icon when an iOS visitor saves the page — likely, since `/play/` is the iOS landing page. 180 × 180, opaque (iOS puts black behind transparency).                                   |
+| `assets/og-image.png`         | both pages | 1200 × 630 link preview card for Slack, iMessage, WhatsApp, X. Generated — see below.                                                                                                           |
+| `assets/og-image.html`        | nothing    | Source for `og-image.png`. A rendering surface, not a page: it carries `noindex, nofollow`, and nothing links to it.                                                                            |
 
 To re-copy the two icons from the app repo:
 
@@ -89,34 +89,18 @@ Regenerating needs network access for Google Fonts, and a future release of DM
 Mono or Syne could shift metrics slightly. Fine for a preview card; don't expect
 a byte-identical rebuild.
 
-## Before publishing
-
-- [ ] Replace `REPLACE-WITH-EMAIL@example.com` in `index.html` — it appears
-      twice, in the `href` and in the link text, marked with an HTML comment.
-- [ ] Update the policy's `<time datetime>` and its visible date if the copy has
-      changed since it was written.
-
-Then, once the site has a live URL, two things outside this repo point at it:
-
-- [ ] **The app's in-app link.** `app/settings.tsx` in the Crunch repo opens
-      `https://example.com/crunch-privacy` — a placeholder with a TODO on it.
-      Until that is changed, the Privacy Policy row in the app's settings screen
-      goes nowhere useful.
-- [ ] **The Play Store listing.** Its privacy policy field should point at the
-      same URL. Google requires one for published apps.
-
 ## When iOS ships
 
 Every platform reference on the site is in `play/index.html`. The privacy policy
 and the OG image name no platform and need nothing.
 
-| Line  | What                                                                       |
-| ----- | -------------------------------------------------------------------------- |
+| Line  | What                                                                         |
+| ----- | ---------------------------------------------------------------------------- |
 | `12`  | `<meta name="description">` — "Available now on Android, coming to iOS soon" |
-| `25`  | `isIOS` — computed but unused today; this is the hook                       |
-| `396` | The `<h1>` headline                                                        |
-| `398` | The blurb                                                                  |
-| `408` | The store card line, and the card becoming a two-platform choice           |
+| `25`  | `isIOS` — computed but unused today; this is the hook                        |
+| `396` | The `<h1>` headline                                                          |
+| `398` | The blurb                                                                    |
+| `408` | The store card line, and the card becoming a two-platform choice             |
 
 The redirect becomes an `else if (isIOS) location.replace(appStoreUrl)` next to
 the Android branch, and the page underneath becomes the desktop fallback.
