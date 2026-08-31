@@ -188,8 +188,16 @@
           param: param,
 
           captureNow: function (event, extra) {
+            /* The policy promises that a browser asking not to be tracked gets
+               nothing, so both signals a browser can send are honoured. Global
+               Privacy Control is the current one — Firefox, Brave and
+               DuckDuckGo send it, and it counts as a legal opt-out under
+               CCPA. Do Not Track is its deprecated predecessor: the spec was
+               discontinued and Safari dropped it, but Chrome and Firefox still
+               expose the toggle, so it is cheap to keep respecting. */
             if (
               BOT.test(ua) ||
+              navigator.globalPrivacyControl === true ||
               navigator.doNotTrack === "1" ||
               window.doNotTrack === "1"
             ) {

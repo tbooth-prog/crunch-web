@@ -188,8 +188,16 @@
           param: param,
 
           captureNow: function (event, extra) {
+            /* The policy promises that a browser asking not to be tracked gets
+               nothing, so both signals a browser can send are honoured. Global
+               Privacy Control is the current one — Firefox, Brave and
+               DuckDuckGo send it, and it counts as a legal opt-out under
+               CCPA. Do Not Track is its deprecated predecessor: the spec was
+               discontinued and Safari dropped it, but Chrome and Firefox still
+               expose the toggle, so it is cheap to keep respecting. */
             if (
               BOT.test(ua) ||
+              navigator.globalPrivacyControl === true ||
               navigator.doNotTrack === "1" ||
               window.doNotTrack === "1"
             ) {
@@ -658,7 +666,7 @@
         </h1>
         <p class="masthead__doc">Privacy Policy</p>
         <p class="masthead__date">
-          Updated <time datetime="2026-08-14">14 August 2026</time>
+          Updated <time datetime="2026-08-31">31 August 2026</time>
         </p>
       </header>
 
@@ -744,6 +752,12 @@
             are not stored. Nothing in an event traces back to you. To stop
             sending events entirely, uninstall the app.
           </p>
+          <p>
+            We also like to know this page is doing its job. That means noting
+            which page you opened, which link you tapped, whether you are on iOS
+            or Android, and keeping a random tag so we don't count you twice. If
+            your browser asks not to be tracked, we won't even do that.
+          </p>
         </article>
 
         <article class="card">
@@ -756,6 +770,10 @@
           <p>
             Only puzzle data is fetched. No game history, no stats, and nothing
             about you is sent to Supabase.
+          </p>
+          <p>
+            Share links run through short.io, which counts the tap and sends you
+            on your way. It sees the click; we only look at the count.
           </p>
         </article>
 
