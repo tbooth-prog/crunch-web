@@ -14,27 +14,303 @@
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0C0C18" />
 
-    <!-- Platform routing.
-     Runs before any body content is parsed, so Android users never paint a
-     frame of this page. location.replace keeps it out of session history —
-     Back from the Play Store returns to wherever they came from, not here.
-     iOS and everything else fall through to the page below. -->
+    <!-- ── Analytics ───────────────────────────────────────────────
+     Events are posted straight to PostHog's capture API with sendBeacon. There
+     is deliberately no posthog-js on either page.
+
+     The reason is the play page's Android hand-off. The SDK's install snippet
+     only queues events into an in-memory array until its bundle has finished
+     downloading, and that page calls location.replace immediately — the
+     navigation throws the queue away before the bundle ever arrives. Measured:
+     nothing was sent at all, and holding the redirect until the bundle loaded
+     pushed the hand-off from around 0ms to around 950ms and still captured
+     nothing. Both pages use the beacon, rather than only the page that needs
+     it, so there is one code path and the counts stay comparable.
+
+     Posting directly also means an event carries exactly the properties built
+     below and nothing else, so none of the SDK's collection defaults have to
+     be hunted down and switched back off.
+    -->
     <script>
-      (function () {
+      var CRUNCH_ANALYTICS = (function () {
+        var TOKEN = "phc_qpnkW3v8KoK8qkPMEtL4Pfcgaog35yjNvVikkamaLWxP";
+        /* The documented capture endpoint. Method, field names and body below
+           are the documented shape too; Content-Type is the one deviation, and
+           captureNow says why. */
+        var ENDPOINT = "https://eu.i.posthog.com/i/v0/e";
+        var ID_KEY = "crunch_anon_id";
+        var SESSION_KEY = "crunch_session_id";
+
+        /* Ad click IDs, stripped from the URL we report, so a share link that
+           picks one up in transit cannot carry it into an event. */
+        var AD_PARAMS = [
+          "gclid",
+          "gbraid",
+          "wbraid",
+          "fbclid",
+          "msclkid",
+          "twclid",
+          "ttclid",
+          "igshid",
+          "li_fat_id",
+          "rdt_cid",
+          "irclickid",
+        ];
+
+        /* Most bots never run JavaScript, but share links get unfurled
+           constantly and some previewers drive a real browser. The user agent
+           is read to skip those and to pick a platform — it is never sent. */
+        var BOT =
+          /bot|crawl|spider|headless|preview|lighthouse|slurp|facebookexternalhit/i;
+
         var ua = navigator.userAgent;
+        /* iPadOS 13+ reports a desktop user agent, so it is caught by touch
+           points on MacIntel rather than by name. */
         var isIOS =
           /iPad|iPhone|iPod/.test(ua) ||
           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
         var isAndroid = /Android/.test(ua);
+        var platform = isIOS ? "ios" : isAndroid ? "android" : "other";
 
-        if (isAndroid) {
-          // Hides the body's contents, not the root: <html> keeps painting its
-          // background, so a slow hand-off stays #0C0C18 instead of flashing white.
-          document.documentElement.className = "is-redirecting";
-          window.location.replace(
-            "https://play.google.com/store/apps/details?id=io.game.crunch",
-          );
+        var query = null;
+        try {
+          query = new URLSearchParams(window.location.search);
+        } catch (e) {}
+        function param(name) {
+          return (query && query.get(name)) || undefined;
         }
+
+        /* How the visit started, collapsed to a bucket.
+
+           The markers are not set anywhere in this repo — they are configured
+           on the Bitly destination URLs and in the Play Console listing field,
+           so there is nothing here to grep for:
+
+             ?src=app     in-app settings link   bit.ly/crunch-privacy
+             ?src=share   in-app share link      bit.ly/play-crunch
+             ?src=store   Play Store listing     raw URL, no shortener
+
+           They sit on the destinations rather than on the short links so the
+           share text stays a bare URL, and so nothing depends on whether Bitly
+           forwards query parameters.
+
+           Unmarked traffic falls back to the referrer. That is the whole
+           reason the markers exist: an in-app WebView and a pasted URL both
+           arrive with no referrer at all, so without one they are the same
+           visit as far as this page can tell. */
+        var CHANNELS = { app: "in_app", share: "share", store: "store" };
+
+        var entrySource = (function () {
+          var marked = param("src") || param("utm_source");
+          if (marked) {
+            /* hasOwnProperty, not a bare lookup: "?src=constructor" would
+               otherwise find Object.prototype and report a function. */
+            return Object.prototype.hasOwnProperty.call(CHANNELS, marked)
+              ? CHANNELS[marked]
+              : "campaign";
+          }
+          var referrer = document.referrer;
+          if (!referrer) return "direct";
+          try {
+            return new URL(referrer).hostname === window.location.hostname
+              ? "internal"
+              : "referral";
+          } catch (e) {
+            return "direct";
+          }
+        })();
+
+        /* Storage throws rather than returning null in some privacy modes, so
+           every access is guarded; a failure just means a fresh id. */
+        function storedId(store, key) {
+          var value = null;
+          try {
+            value = window[store].getItem(key);
+          } catch (e) {}
+          if (value) return value;
+          value =
+            window.crypto && window.crypto.randomUUID
+              ? window.crypto.randomUUID()
+              : "id-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+          try {
+            window[store].setItem(key, value);
+          } catch (e) {}
+          return value;
+        }
+
+        /* Random, derived from nothing about the device. The visitor id is the
+           only thing kept between visits, so someone returning is not counted
+           twice; the session id lasts until the tab closes and is what groups
+           a visit together. */
+        var distinctId = storedId("localStorage", ID_KEY);
+        var sessionId = storedId("sessionStorage", SESSION_KEY);
+
+        function cleanUrl() {
+          try {
+            var url = new URL(window.location.href);
+            AD_PARAMS.forEach(function (name) {
+              url.searchParams.delete(name);
+            });
+            return url.href;
+          } catch (e) {
+            return window.location.origin + window.location.pathname;
+          }
+        }
+
+        /* Everything an event carries, and nothing else. Platform is set here
+           rather than at each call site so no event can be sent without it. */
+        function baseProperties() {
+          var props = {
+            platform: platform,
+            entry_source: entrySource,
+            $session_id: sessionId,
+            $current_url: cleanUrl(),
+            $host: window.location.host,
+            $pathname: window.location.pathname,
+            $referrer: document.referrer || "$direct",
+            $referring_domain: "$direct",
+          };
+          try {
+            if (document.referrer) {
+              props.$referring_domain = new URL(document.referrer).hostname;
+            }
+          } catch (e) {}
+          ["utm_source", "utm_medium", "utm_campaign"].forEach(function (key) {
+            var value = param(key);
+            if (value) props[key] = value;
+          });
+          return props;
+        }
+
+        return {
+          platform: platform,
+          isAndroid: isAndroid,
+          param: param,
+
+          captureNow: function (event, extra) {
+            if (
+              BOT.test(ua) ||
+              navigator.doNotTrack === "1" ||
+              window.doNotTrack === "1"
+            ) {
+              return false;
+            }
+
+            var props = baseProperties();
+            if (extra) {
+              for (var key in extra) {
+                if (Object.prototype.hasOwnProperty.call(extra, key)) {
+                  props[key] = extra[key];
+                }
+              }
+            }
+
+            /* Content-Type is the one deviation from the documented example,
+               and it is for the browser rather than for PostHog.
+
+               A cross-origin POST is sent straight away only when its type is
+               CORS-safelisted. application/json instead forces an OPTIONS
+               preflight; the endpoint returns no Access-Control-Max-Age, so it
+               would preflight on every single event, and a preflight is not
+               reliably run once the page is unloading — which is exactly when
+               the events beside a link or a redirect are sent. Passing a
+               string rather than a Blob makes the browser label the request
+               text/plain;charset=UTF-8, which is safelisted. PostHog parses
+               the body as JSON either way. posthog-js makes the same trade,
+               using application/x-www-form-urlencoded on its own beacon path
+               and application/json only for fetch and XHR. */
+            try {
+              return navigator.sendBeacon(
+                ENDPOINT,
+                JSON.stringify({
+                  api_key: TOKEN,
+                  event: event,
+                  distinct_id: distinctId,
+                  properties: props,
+                  timestamp: new Date().toISOString(),
+                }),
+              );
+            } catch (e) {
+              return false;
+            }
+          },
+        };
+      })();
+    </script>
+
+    <!-- ── Platform routing ────────────────────────────────────────
+     Runs before any body content is parsed, so Android users never paint a
+     frame of this page. location.replace keeps it out of session history —
+     Back from the Play Store returns to wherever they came from, not here.
+     iOS and everything else fall through to the page below.
+
+     Two things happen here for analytics. The arrival is recorded before the
+     hand-off, by beacon, because this page is already on its way out and
+     nothing queued would survive the navigation. And if the hand-off never
+     commits, the visitor is sent back here with ?noauto=1 — see below. -->
+    <script>
+      (function () {
+        var STORE_URL =
+          "https://play.google.com/store/apps/details?id=io.game.crunch";
+
+        /* Set when a stalled hand-off sent the visitor back. Suppresses the
+           redirect, so the page renders and the manual button is reachable. */
+        var isRetry = CRUNCH_ANALYTICS.param("noauto") === "1";
+
+        /* What PostHog's web analytics counts; with no SDK nothing sends it
+           automatically. Sent on the retry load too — that is a second page
+           load and web analytics should see it as one. */
+        CRUNCH_ANALYTICS.captureNow("$pageview");
+
+        /* Top of the funnel: one per arrival, sent the same way on every
+           platform so the counts are directly comparable. `platform` splits
+           Android from the iOS coming-soon page, so neither needs its own
+           event. Not resent on the retry — that is the same visit, already
+           counted, and resending would double every stalled arrival. */
+        if (!isRetry) CRUNCH_ANALYTICS.captureNow("share_landing_viewed");
+
+        if (!CRUNCH_ANALYTICS.isAndroid || isRetry) return;
+
+        /* Belt and braces, and it does nothing in Chrome: location.replace
+           below stops the parser, so no <body> is ever created to hide —
+           document.body is null on this path. What actually keeps the
+           hand-off dark is the html background rule in the stylesheet, which
+           paints before <body> is parsed. Kept only for a browser that
+           carries on parsing through the navigation. */
+        document.documentElement.className = "is-redirecting";
+
+        /* Did the hand-off actually take?
+
+           Chrome passes play.google.com to the Play app, which backgrounds
+           this tab. So if the page is hidden at any point we assume it worked
+           and stay out of the way; only a page that has been visible the whole
+           time has genuinely failed to hand off. That errs towards
+           under-reporting, which is the right direction for this number.
+
+           The recovery matters as much as the measurement: location.replace
+           below stops the HTML parser, so this document has no <body> at all
+           and no manual button to fall back on — a failed hand-off leaves a
+           blank page. Reloading with ?noauto=1 skips the redirect and renders
+           the page properly. This has to live in the head for the same reason:
+           on the Android path no body script ever runs. */
+        var wasHidden = document.visibilityState === "hidden";
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "hidden") wasHidden = true;
+        });
+
+        window.setTimeout(function () {
+          if (wasHidden || document.visibilityState !== "visible") return;
+          CRUNCH_ANALYTICS.captureNow("play_store_redirect_stalled");
+          var search = window.location.search;
+          window.location.replace(
+            window.location.pathname +
+              search +
+              (search ? "&" : "?") +
+              "noauto=1",
+          );
+        }, 2500);
+
+        window.location.replace(STORE_URL);
       })();
     </script>
 
@@ -400,6 +676,7 @@
       </p>
 
       <a
+        id="store-link"
         class="store"
         href="https://play.google.com/store/apps/details?id=io.game.crunch"
       >
@@ -411,7 +688,35 @@
         <span class="store__go" aria-hidden="true">&rarr;</span>
       </a>
 
-      <p class="foot"><a href="../">Privacy policy</a></p>
+      <p class="foot">
+        <a id="privacy-link" href="../">Privacy policy</a>
+      </p>
     </main>
+
+    <!-- ── Analytics: the rest of the funnel ───────────────────────────
+     The arrival is recorded in the head, because Android leaves before this
+     point. Everything below describes a visitor who is still on the page —
+     which on Android means the hand-off failed and ?noauto=1 brought them
+     back, so a click here is a genuine fall-through to the manual button. -->
+    <script>
+      (function () {
+        document
+          .getElementById("store-link")
+          .addEventListener("click", function () {
+            /* The manual tap. On iOS and desktop it is intent from a platform
+               we are not shipping on yet; on Android it can only mean the
+               automatic hand-off failed, so `platform` separates the two. */
+            CRUNCH_ANALYTICS.captureNow("play_store_link_clicked", {
+              trigger: "manual",
+            });
+          });
+
+        document
+          .getElementById("privacy-link")
+          .addEventListener("click", function () {
+            CRUNCH_ANALYTICS.captureNow("privacy_policy_link_clicked");
+          });
+      })();
+    </script>
   </body>
 </html>
