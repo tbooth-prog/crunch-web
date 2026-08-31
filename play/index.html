@@ -82,16 +82,19 @@
 
         /* How the visit started, collapsed to a bucket.
 
-           The markers are not set anywhere in this repo — they are configured
-           on the Bitly destination URLs and in the Play Console listing field,
-           so there is nothing here to grep for:
+           The markers are not set anywhere in this repo — each one is baked
+           into a short link's destination when the link is created, so there
+           is nothing here to grep for:
 
-             ?src=app     in-app settings link   bit.ly/crunch-privacy
-             ?src=share   in-app share link      bit.ly/play-crunch
-             ?src=store   Play Store listing     raw URL, no shortener
+             ?src=app     in-app settings link
+             ?src=share   in-app share link
+             ?src=store   Play Store listing
 
-           They sit on the destinations rather than on the short links so the
-           share text stays a bare URL, and so nothing depends on whether Bitly
+           All three sit behind a redirect, including the store listing: the
+           Play Console privacy policy field rejects query strings, so the
+           marker has to live on the far side of one. Keeping them on the
+           destinations rather than the short links also means shared text
+           stays a bare URL, and nothing depends on whether a given shortener
            forwards query parameters.
 
            Unmarked traffic falls back to the referrer. That is the whole
@@ -185,6 +188,7 @@
         return {
           platform: platform,
           isAndroid: isAndroid,
+          entrySource: entrySource,
           param: param,
 
           captureNow: function (event, extra) {
@@ -257,9 +261,34 @@
      nothing queued would survive the navigation. And if the hand-off never
      commits, the visitor is sent back here with ?noauto=1 — see below. -->
     <script>
-      (function () {
+      var CRUNCH_PLAY = (function () {
         var STORE_URL =
           "https://play.google.com/store/apps/details?id=io.game.crunch";
+
+        /* Play's install referrer. The app reads this on first launch through
+           the Install Referrer API, and it is the only thing that ties a visit
+           here to an actual install — Play Console's install count otherwise
+           mixes this page's traffic in with people who found the app by
+           searching the store, which flatters the conversion rate.
+
+           Channel only: the entry bucket, plus a campaign name if the URL
+           already carried one. Deliberately not the visitor id — carrying that
+           across would build precisely the web-to-app link the privacy policy
+           says does not exist. Standard utm_* names, so Play Console's
+           acquisition reports read them without extra configuration. */
+        function storeUrl() {
+          var referrer = [
+            "utm_source=" + encodeURIComponent(CRUNCH_ANALYTICS.entrySource),
+            "utm_medium=website",
+          ];
+          var campaign = CRUNCH_ANALYTICS.param("utm_campaign");
+          if (campaign) {
+            referrer.push("utm_campaign=" + encodeURIComponent(campaign));
+          }
+          return (
+            STORE_URL + "&referrer=" + encodeURIComponent(referrer.join("&"))
+          );
+        }
 
         /* Set when a stalled hand-off sent the visitor back. Suppresses the
            redirect, so the page renders and the manual button is reachable. */
@@ -273,52 +302,57 @@
         /* Top of the funnel: one per arrival, sent the same way on every
            platform so the counts are directly comparable. `platform` splits
            Android from the iOS coming-soon page, so neither needs its own
-           event. Not resent on the retry — that is the same visit, already
-           counted, and resending would double every stalled arrival. */
-        if (!isRetry) CRUNCH_ANALYTICS.captureNow("share_landing_viewed");
+           event, and entry_source says which link they came in on — the name
+           deliberately says nothing about the channel, because this fires for
+           every arrival and not just shared ones. Not resent on the retry:
+           that is the same visit, already counted, and resending would double
+           every stalled arrival. */
+        if (!isRetry) CRUNCH_ANALYTICS.captureNow("play_page_viewed");
 
-        if (!CRUNCH_ANALYTICS.isAndroid || isRetry) return;
+        if (CRUNCH_ANALYTICS.isAndroid && !isRetry) {
+          /* Belt and braces, and it does nothing in Chrome: location.replace
+             below stops the parser, so no <body> is ever created to hide —
+             document.body is null on this path. What actually keeps the
+             hand-off dark is the html background rule in the stylesheet, which
+             paints before <body> is parsed. Kept only for a browser that
+             carries on parsing through the navigation. */
+          document.documentElement.className = "is-redirecting";
 
-        /* Belt and braces, and it does nothing in Chrome: location.replace
-           below stops the parser, so no <body> is ever created to hide —
-           document.body is null on this path. What actually keeps the
-           hand-off dark is the html background rule in the stylesheet, which
-           paints before <body> is parsed. Kept only for a browser that
-           carries on parsing through the navigation. */
-        document.documentElement.className = "is-redirecting";
+          /* Did the hand-off actually take?
 
-        /* Did the hand-off actually take?
+             Chrome passes play.google.com to the Play app, which backgrounds
+             this tab. So if the page is hidden at any point we assume it worked
+             and stay out of the way; only a page that has been visible the whole
+             time has genuinely failed to hand off. That errs towards
+             under-reporting, which is the right direction for this number.
 
-           Chrome passes play.google.com to the Play app, which backgrounds
-           this tab. So if the page is hidden at any point we assume it worked
-           and stay out of the way; only a page that has been visible the whole
-           time has genuinely failed to hand off. That errs towards
-           under-reporting, which is the right direction for this number.
+             The recovery matters as much as the measurement: location.replace
+             below stops the HTML parser, so this document has no <body> at all
+             and no manual button to fall back on — a failed hand-off leaves a
+             blank page. Reloading with ?noauto=1 skips the redirect and renders
+             the page properly. This has to live in the head for the same reason:
+             on the Android path no body script ever runs. */
+          var wasHidden = document.visibilityState === "hidden";
+          document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "hidden") wasHidden = true;
+          });
 
-           The recovery matters as much as the measurement: location.replace
-           below stops the HTML parser, so this document has no <body> at all
-           and no manual button to fall back on — a failed hand-off leaves a
-           blank page. Reloading with ?noauto=1 skips the redirect and renders
-           the page properly. This has to live in the head for the same reason:
-           on the Android path no body script ever runs. */
-        var wasHidden = document.visibilityState === "hidden";
-        document.addEventListener("visibilitychange", function () {
-          if (document.visibilityState === "hidden") wasHidden = true;
-        });
+          window.setTimeout(function () {
+            if (wasHidden || document.visibilityState !== "visible") return;
+            CRUNCH_ANALYTICS.captureNow("play_store_redirect_stalled");
+            var search = window.location.search;
+            window.location.replace(
+              window.location.pathname +
+                search +
+                (search ? "&" : "?") +
+                "noauto=1",
+            );
+          }, 2500);
 
-        window.setTimeout(function () {
-          if (wasHidden || document.visibilityState !== "visible") return;
-          CRUNCH_ANALYTICS.captureNow("play_store_redirect_stalled");
-          var search = window.location.search;
-          window.location.replace(
-            window.location.pathname +
-              search +
-              (search ? "&" : "?") +
-              "noauto=1",
-          );
-        }, 2500);
+          window.location.replace(storeUrl());
+        }
 
-        window.location.replace(STORE_URL);
+        return { storeUrl: storeUrl };
       })();
     </script>
 
@@ -708,16 +742,22 @@
      back, so a click here is a genuine fall-through to the manual button. -->
     <script>
       (function () {
-        document
-          .getElementById("store-link")
-          .addEventListener("click", function () {
-            /* The manual tap. On iOS and desktop it is intent from a platform
-               we are not shipping on yet; on Android it can only mean the
-               automatic hand-off failed, so `platform` separates the two. */
-            CRUNCH_ANALYTICS.captureNow("play_store_link_clicked", {
-              trigger: "manual",
-            });
+        var storeLink = document.getElementById("store-link");
+
+        /* Carry the same install referrer the automatic hand-off uses, so a
+           manual tap is credited to the channel it arrived on. The href in the
+           markup stays a plain store URL: with JavaScript off nothing here
+           runs, and a working link matters more than attributing it. */
+        storeLink.href = CRUNCH_PLAY.storeUrl();
+
+        storeLink.addEventListener("click", function () {
+          /* The manual tap. On iOS and desktop it is intent from a platform we
+             are not shipping on yet; on Android it can only mean the automatic
+             hand-off failed, so `platform` separates the two. */
+          CRUNCH_ANALYTICS.captureNow("play_store_link_clicked", {
+            trigger: "manual",
           });
+        });
 
         document
           .getElementById("privacy-link")

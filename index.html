@@ -82,16 +82,19 @@
 
         /* How the visit started, collapsed to a bucket.
 
-           The markers are not set anywhere in this repo — they are configured
-           on the Bitly destination URLs and in the Play Console listing field,
-           so there is nothing here to grep for:
+           The markers are not set anywhere in this repo — each one is baked
+           into a short link's destination when the link is created, so there
+           is nothing here to grep for:
 
-             ?src=app     in-app settings link   bit.ly/crunch-privacy
-             ?src=share   in-app share link      bit.ly/play-crunch
-             ?src=store   Play Store listing     raw URL, no shortener
+             ?src=app     in-app settings link
+             ?src=share   in-app share link
+             ?src=store   Play Store listing
 
-           They sit on the destinations rather than on the short links so the
-           share text stays a bare URL, and so nothing depends on whether Bitly
+           All three sit behind a redirect, including the store listing: the
+           Play Console privacy policy field rejects query strings, so the
+           marker has to live on the far side of one. Keeping them on the
+           destinations rather than the short links also means shared text
+           stays a bare URL, and nothing depends on whether a given shortener
            forwards query parameters.
 
            Unmarked traffic falls back to the referrer. That is the whole
@@ -185,6 +188,7 @@
         return {
           platform: platform,
           isAndroid: isAndroid,
+          entrySource: entrySource,
           param: param,
 
           captureNow: function (event, extra) {
